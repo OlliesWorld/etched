@@ -2,7 +2,7 @@
 	import type { Component } from 'svelte';
 	import type { PageData } from './$types.js';
 	import Card from '$lib/components/Card.svelte';
-	import { getDomainPalette } from '$lib/domain-colors.js';
+	import { getDomainPalette, getTypePalette } from '$lib/domain-colors.js';
 
 	// Eagerly import all .md files as Svelte components so the body renders
 	// natively — no {@html} needed and mdsvex styles stay scoped.
@@ -19,18 +19,16 @@
 	let { data }: { data: PageData } = $props();
 	let selectedType = $state<string>('all');
 	let selectedDomain = $state<string>('all');
-
-	const TYPE_PALETTES: Record<string, { bg: string; text: string; border: string }> = {
-		historical: { bg: '#372c11', text: '#f0d98f', border: '#8b742b' },
-		mythological: { bg: '#3d1f6e', text: '#c4a0ff', border: '#6b48b4' },
-		fictional: { bg: '#0f2e45', text: '#7ec8f5', border: '#3476a0' }
-	};
-
-	function getTypePalette(type: string) {
-		return TYPE_PALETTES[type.toLowerCase()] ?? { bg: '#171231', text: '#d8cffd', border: '#3a315f' };
-	}
+	let domainsExpanded = $state(false);
 
 	const types = $derived(Array.from(new Set(data.cards.map((card) => card.type))).sort());
+	const typeOptions = $derived(['all', ...types]);
+	const selectedTypeIndex = $derived(typeOptions.indexOf(selectedType));
+	const indicatorStyle = $derived(
+		selectedType === 'all'
+			? '--indicator-bg: rgba(125, 114, 212, 0.35); --indicator-border: rgba(188, 180, 245, 0.5);'
+			: `--indicator-bg: ${getTypePalette(selectedType).bg}; --indicator-border: ${getTypePalette(selectedType).border};`
+	);
 
 	const domains = $derived(
 		Array.from(new Set(data.cards.flatMap((card) => card.domain))).sort((a, b) =>
@@ -61,26 +59,19 @@
 	<div class="filters" aria-label="Card filters">
 		<div class="filter-group" aria-label="Filter cards by type">
 			<p class="filter-label">Type</p>
-			<div class="filter-buttons">
-				<button
-					type="button"
-					class="all-filter"
-					class:active={selectedType === 'all'}
-					onclick={() => (selectedType = 'all')}
-				>
-					All
-				</button>
-
-				{#each types as type (type)}
-					{@const typePalette = getTypePalette(type)}
+			<div
+				class="segment-track"
+				style="--total: {typeOptions.length}; --idx: {selectedTypeIndex}; {indicatorStyle}"
+			>
+				<div class="segment-indicator"></div>
+				{#each typeOptions as opt (opt)}
 					<button
 						type="button"
-						class="type-filter"
-						class:active={selectedType === type}
-						style={`--type-bg: ${typePalette.bg}; --type-fg: ${typePalette.text}; --type-border: ${typePalette.border};`}
-						onclick={() => (selectedType = type)}
+						class="segment-btn"
+						class:active={selectedType === opt}
+						onclick={() => (selectedType = opt)}
 					>
-						{type}
+						{opt}
 					</button>
 				{/each}
 			</div>
@@ -88,29 +79,34 @@
 
 		<div class="filter-group" aria-label="Filter cards by domain">
 			<p class="filter-label">Domain</p>
-			<div class="filter-buttons">
-				<button
-					type="button"
-					class="all-filter"
-					class:active={selectedDomain === 'all'}
-					onclick={() => (selectedDomain = 'all')}
-				>
-					All
-				</button>
-
-				{#each domains as domain (domain)}
-					{@const domainPalette = getDomainPalette(domain)}
+			<div class="domain-wrap" class:expanded={domainsExpanded}>
+				<div class="filter-buttons">
 					<button
 						type="button"
-						class="domain-filter"
-						class:active={selectedDomain === domain}
-						style={`--filter-bg: ${domainPalette.bg}; --filter-fg: ${domainPalette.text}; --filter-border: ${domainPalette.border};`}
-						onclick={() => (selectedDomain = domain)}
+						class="all-filter"
+						class:active={selectedDomain === 'all'}
+						onclick={() => (selectedDomain = 'all')}
 					>
-						{domain}
+						All
 					</button>
-				{/each}
+
+					{#each domains as domain (domain)}
+						{@const domainPalette = getDomainPalette(domain)}
+						<button
+							type="button"
+							class="domain-filter"
+							class:active={selectedDomain === domain}
+							style={`--filter-bg: ${domainPalette.bg}; --filter-fg: ${domainPalette.text}; --filter-border: ${domainPalette.border};`}
+							onclick={() => (selectedDomain = domain)}
+						>
+							{domain}
+						</button>
+					{/each}
+				</div>
 			</div>
+			<button type="button" class="more-btn" onclick={() => (domainsExpanded = !domainsExpanded)}>
+				{domainsExpanded ? 'Less ▲' : 'More ▾'}
+			</button>
 		</div>
 	</div>
 
@@ -178,7 +174,99 @@
 		gap: 0.6rem;
 	}
 
-	.filters button {
+	/* Domain collapse/expand */
+	.domain-wrap {
+		/* One row of buttons: ~1.61rem button height */
+		max-height: 2.1rem;
+		overflow: hidden;
+		transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		/* Fade out the bottom edge to hint there's more */
+		mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+		-webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+	}
+
+	.domain-wrap.expanded {
+		max-height: 400px;
+		mask-image: none;
+		-webkit-mask-image: none;
+	}
+
+	.more-btn {
+		display: block;
+		margin: 0.3rem auto 0;
+		padding: 0.2rem 0.7rem;
+		background: none;
+		border: none;
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		color: #8f8ab5;
+		cursor: pointer;
+		transition: color 120ms ease;
+	}
+
+	.more-btn:hover {
+		color: #c4a0ff;
+	}
+
+	/* ── Segmented control (type) ───────────────────────────────────────────── */
+
+	.segment-track {
+		position: relative;
+		display: grid;
+		grid-template-columns: repeat(var(--total, 4), 1fr);
+		background: rgba(255, 255, 255, 0.04);
+		border-radius: 999px;
+		padding: 3px;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		max-width: 420px;
+		margin: 0 auto;
+	}
+
+	.segment-indicator {
+		position: absolute;
+		top: 3px;
+		bottom: 3px;
+		left: calc(var(--idx, 0) * 100% / var(--total, 4));
+		width: calc(100% / var(--total, 4));
+		border-radius: 999px;
+		background: var(--indicator-bg, rgba(125, 114, 212, 0.35));
+		border: 1px solid var(--indicator-border, rgba(188, 180, 245, 0.5));
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3);
+		transition:
+			left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+			background 0.25s ease,
+			border-color 0.25s ease;
+		pointer-events: none;
+	}
+
+	.segment-btn {
+		position: relative;
+		z-index: 1;
+		padding: 0.38rem 0.5rem;
+		background: none;
+		border: none;
+		border-radius: 999px;
+		font-size: 0.82rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: capitalize;
+		color: #6a668f;
+		cursor: pointer;
+		transition: color 0.2s ease;
+	}
+
+	.segment-btn.active {
+		color: #e8e2ff;
+	}
+
+	.segment-btn:hover:not(.active) {
+		color: #c4a0ff;
+	}
+
+	/* ── Domain pill buttons ─────────────────────────────────────────────────── */
+
+	.filter-buttons button {
 		padding: 0.38rem 0.8rem;
 		border-radius: 999px;
 		font-size: 0.85rem;
@@ -196,45 +284,31 @@
 			color 120ms ease;
 	}
 
-	.filters .all-filter {
+	.filter-buttons .all-filter {
 		border: 1px solid rgba(188, 180, 245, 0.5);
 		background: linear-gradient(135deg, rgba(125, 114, 212, 0.24), rgba(89, 154, 221, 0.16));
 		color: #e8e2ff;
 	}
 
-	.filters .domain-filter {
+	.filter-buttons .domain-filter {
 		border: 1px solid var(--filter-border, #2a7b4d);
 		background: var(--filter-bg, #0e2e1e);
 		color: var(--filter-fg, #6deda0);
 		font-weight: 500;
 	}
 
-	.filters .type-filter {
-		border: 1px solid var(--type-border, #8b742b);
-		background: var(--type-bg, #372c11);
-		color: var(--type-fg, #f0d98f);
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-	}
-
-	.filters button:hover {
+	.filter-buttons button:hover {
 		transform: translateY(-1px);
 		filter: brightness(1.12);
 	}
 
-	.filters .domain-filter.active {
+	.filter-buttons .domain-filter.active {
 		background: color-mix(in oklab, var(--filter-bg, rgba(66, 138, 245, 0.2)) 72%, white);
 		border-color: color-mix(in oklab, var(--filter-border, rgba(130, 186, 255, 0.42)) 68%, white);
 		color: color-mix(in oklab, var(--filter-fg, #a8d4ff) 86%, white);
 	}
 
-	.filters .type-filter.active {
-		background: color-mix(in oklab, var(--type-bg, rgba(236, 179, 89, 0.2)) 72%, white);
-		border-color: color-mix(in oklab, var(--type-border, rgba(255, 208, 135, 0.5)) 68%, white);
-		color: color-mix(in oklab, var(--type-fg, #ffe0ac) 86%, white);
-	}
-
-	.filters .all-filter.active {
+	.filter-buttons .all-filter.active {
 		background: linear-gradient(135deg, rgba(146, 137, 220, 0.38), rgba(99, 176, 233, 0.24));
 		border-color: rgba(204, 195, 255, 0.72);
 		color: #ffffff;

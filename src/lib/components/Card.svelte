@@ -92,13 +92,11 @@
 		inherits: false;
 		initial-value: 0.5;
 	}
-	/* --hue-shift drives rainbow cycling; animated during idle */
 	@property --hue-shift {
 		syntax: '<number>';
 		inherits: false;
 		initial-value: 0;
 	}
-	/* --shine-x/y move the idle spotlight around the card */
 	@property --shine-x {
 		syntax: '<number>';
 		inherits: false;
@@ -109,8 +107,14 @@
 		inherits: false;
 		initial-value: 0.5;
 	}
+	/* Glass glint sweep position — 0 = left edge, 1 = right edge */
+	@property --glint {
+		syntax: '<number>';
+		inherits: false;
+		initial-value: -0.2;
+	}
 
-	/* ─── Idle shimmer: spotlight drifts, rainbow hue cycles ───────────────── */
+	/* ─── Idle: rainbow hue cycles, spotlight drifts, glass glint sweeps ────── */
 
 	@keyframes idle-shimmer {
 		0%   { --hue-shift: 0;   --shine-x: 0.28; --shine-y: 0.22; }
@@ -120,6 +124,12 @@
 		100% { --hue-shift: 360; --shine-x: 0.28; --shine-y: 0.22; }
 	}
 
+	/* Glass glint: diagonal highlight sweeps across the card, then pauses */
+	@keyframes glass-sweep {
+		0%        { --glint: -0.25; }
+		20%, 100% { --glint: 1.25; }
+	}
+
 	/* ─── Card container ────────────────────────────────────────────────────── */
 
 	.card {
@@ -127,10 +137,17 @@
 		border-radius: 1rem;
 		overflow: hidden;
 		isolation: isolate;
-		background: #0e0c1e;
+
+		background: linear-gradient(145deg, #16132a 0%, #0e0c1e 55%, #12102a 100%);
 		color: #e8e8f0;
 
-		/* Physical tilt — driven entirely by --mouse-x / --mouse-y */
+		/* Glass edge: subtle white border + inner highlight */
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		box-shadow:
+			calc((var(--mouse-x) - 0.5) * 40px) calc((var(--mouse-y) - 0.5) * 28px) 48px rgba(0, 0, 0, 0.6),
+			0 0 0 1px rgba(255, 255, 255, 0.07),
+			inset 0 1px 0 rgba(255, 255, 255, 0.07);
+
 		transform:
 			perspective(700px)
 			rotateY(calc(var(--mouse-x) * 25deg - 12.5deg))
@@ -140,25 +157,21 @@
 			transform 0.1s ease-out,
 			box-shadow 0.12s ease-out;
 
-		/* Shadow shifts to reinforce tilt direction, like a real card under light */
-		box-shadow:
-			calc((var(--mouse-x) - 0.5) * 40px) calc((var(--mouse-y) - 0.5) * 28px) 48px
-				rgba(0, 0, 0, 0.6),
-			0 0 0 1px rgba(255, 255, 255, 0.07);
-
 		animation: idle-shimmer 7s linear infinite;
 		touch-action: manipulation;
 		cursor: pointer;
 	}
 
-	/* Pause idle when mouse is actively over the card */
 	.card:hover {
 		animation-play-state: paused;
+		border-color: rgba(200, 170, 255, 0.25);
 	}
 
-	/* ─── ::before — sheen spotlight ───────────────────────────────────────── */
-	/* A soft radial that follows the mouse. mix-blend-mode: overlay pops        */
-	/* highlights and deepens shadows relative to what's painted beneath it.     */
+	/* ─── ::before — glass glint sweep (idle) + mouse spotlight (hover) ─────── */
+	/*                                                                             */
+	/* Two gradient layers in one pseudo-element:                                 */
+	/*   1. Diagonal band (--glint) sweeps L→R in idle, frozen on hover          */
+	/*   2. Radial spotlight always tracks --mouse-x/y                            */
 
 	.card::before {
 		content: '';
@@ -168,26 +181,37 @@
 		border-radius: inherit;
 		pointer-events: none;
 
-		background: radial-gradient(
-			ellipse 80% 80% at calc(var(--mouse-x) * 100%) calc(var(--mouse-y) * 100%),
-			rgba(255, 255, 255, 0.22) 0%,
-			hsl(calc(var(--mouse-x) * 360 + var(--hue-shift)) 100% 72% / 0.28) 28%,
-			hsl(calc(var(--mouse-x) * 360 + var(--hue-shift) + 120) 80% 65% / 0.1) 52%,
-			transparent 68%
-		);
+		background:
+			/* spotlight — only really visible when mouse is off-center */
+			radial-gradient(
+				ellipse 80% 80% at calc(var(--mouse-x) * 100%) calc(var(--mouse-y) * 100%),
+				rgba(255, 255, 255, 0.18) 0%,
+				hsl(calc(var(--mouse-x) * 360 + var(--hue-shift)) 100% 72% / 0.24) 28%,
+				hsl(calc(var(--mouse-x) * 360 + var(--hue-shift) + 120) 80% 65% / 0.08) 52%,
+				transparent 68%
+			),
+			/* glass glint — narrow diagonal band */
+			linear-gradient(
+				115deg,
+				transparent              calc(var(--glint) * 120% - 22%),
+				rgba(255, 255, 255, 0.0) calc(var(--glint) * 120% - 12%),
+				rgba(255, 255, 255, 0.3) calc(var(--glint) * 120%),
+				rgba(255, 255, 255, 0.0) calc(var(--glint) * 120% + 12%),
+				transparent              calc(var(--glint) * 120% + 22%)
+			);
 
 		mix-blend-mode: overlay;
-		opacity: 0;
-		transition: opacity 0.45s ease;
+		opacity: 0.55;
+		animation: glass-sweep 4.5s ease-in-out infinite;
+		transition: opacity 0.35s ease;
 	}
 
 	.card:hover::before {
 		opacity: 1;
+		animation-play-state: paused;
 	}
 
-	/* ─── ::after — rainbow foil ────────────────────────────────────────────── */
-	/* A multi-stop hsl spectrum stripe + idle spotlight blob. mix-blend-mode:   */
-	/* color-dodge on dark backgrounds creates vivid, saturated colour flares.   */
+	/* ─── ::after — rainbow foil + idle spotlight ───────────────────────────── */
 
 	.card::after {
 		content: '';
@@ -197,7 +221,6 @@
 		border-radius: inherit;
 		pointer-events: none;
 
-		/* idle spotlight (shine-x/y animated) layered over spectrum stripe */
 		background:
 			radial-gradient(
 				circle at calc(var(--shine-x) * 100%) calc(var(--shine-y) * 100%),
@@ -229,7 +252,6 @@
 		width: 100%;
 		height: 250px;
 		overflow: hidden;
-		/* Deep space gradient shown when no image is loaded */
 		background:
 			radial-gradient(ellipse at 30% 40%, #2a1060 0%, transparent 55%),
 			radial-gradient(ellipse at 72% 62%, #0a2f5e 0%, transparent 55%),
@@ -249,7 +271,10 @@
 		position: relative;
 		z-index: 1;
 		padding: 0.85rem 1.1rem 1rem;
-		background: #0e0c1e;
+		background: rgba(10, 8, 24, 0.92);
+		backdrop-filter: blur(12px) saturate(140%);
+		-webkit-backdrop-filter: blur(12px) saturate(140%);
+		border-top: 1px solid rgba(255, 255, 255, 0.07);
 	}
 
 	h2 {
@@ -284,7 +309,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 	}
-	.era    { background: #0f2e45; color: #7ec8f5; }
+	.era    { background: #0f2e45; color: #7ec8f5; border: 1px solid rgba(126, 200, 245, 0.25); }
 	.domain {
 		background: var(--domain-bg, #0e2e1e);
 		color: var(--domain-fg, #6deda0);
@@ -293,8 +318,6 @@
 	}
 
 	/* ─── Reveal overlay ────────────────────────────────────────────────────── */
-	/* Covers the full card. Gradient is transparent at the top so the image     */
-	/* and holographic layers bleed through, then goes dark for readable text.   */
 
 	.reveal {
 		position: absolute;
@@ -320,7 +343,6 @@
 		pointer-events: none;
 	}
 
-	/* Desktop: CSS-only hover reveal (no JS state needed) */
 	@media (hover: hover) {
 		.card:hover .reveal {
 			opacity: 1;
@@ -329,7 +351,6 @@
 		}
 	}
 
-	/* Mobile tap, or desktop click-to-pin */
 	.card.is-revealed .reveal {
 		opacity: 1;
 		transform: none;
