@@ -1,3 +1,50 @@
+<script module>
+	import { SvelteMap } from 'svelte/reactivity';
+
+	// Shared across all Card instances — one AudioContext for the whole page
+	let audioCtx: AudioContext | null = null;
+	let audioUnlocked = false;
+	const audioCache = new SvelteMap<string, AudioBuffer>();
+
+	function getAudioContext(): AudioContext {
+		audioCtx ??= new AudioContext();
+		return audioCtx;
+	}
+
+	export async function unlockAudio() {
+		if (audioUnlocked) return;
+		const ctx = getAudioContext();
+		await ctx.resume();
+		audioUnlocked = true;
+	}
+
+	export async function playHoverSound(text: string) {
+		if (!audioUnlocked) return;
+		try {
+			const ctx = getAudioContext();
+
+			let audioBuffer = audioCache.get(text);
+			if (!audioBuffer) {
+				const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+				if (!res.ok) {
+					console.error('TTS API error:', res.status, await res.text());
+					return;
+				}
+				const arrayBuf = await res.arrayBuffer();
+				audioBuffer = await ctx.decodeAudioData(arrayBuf);
+				audioCache.set(text, audioBuffer);
+			}
+
+			const source = ctx.createBufferSource();
+			source.buffer = audioBuffer;
+			source.connect(ctx.destination);
+			source.start();
+		} catch (e) {
+			console.error('playHoverSound failed:', e);
+		}
+	}
+</script>
+
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import type { Card } from '$lib/cards.server.js';
@@ -6,6 +53,7 @@
 	let { card, Content }: { card: Card; Content?: Component } = $props();
 	let revealed = $state(false);
 	const typePalette = $derived(getTypePalette(card.type));
+	const filterId = $derived(card.name.replace(/[^a-z0-9]/gi, '').toLowerCase());
 
 	// ≤ 10 lines: read mouse position as 0–1 fractions, push to CSS custom props
 	function holographic(node: HTMLElement) {
@@ -28,8 +76,9 @@
 	{@attach holographic}
 	class="card"
 	class:is-revealed={revealed}
-	onclick={() => (revealed = !revealed)}
+	onclick={() => { unlockAudio(); revealed = !revealed; }}
 	onkeydown={(e) => e.key === 'Enter' && (revealed = !revealed)}
+	onmouseenter={() => playHoverSound('water drop, soft liquid swirl,')}
 	role="button"
 	tabindex="0"
 	aria-expanded={revealed}
@@ -39,6 +88,11 @@
 	<div class="image-wrap">
 		{#if card.image}
 			<img src={card.image} alt={card.name} loading="lazy" />
+		{:else}
+			<div
+				class="avatar-art"
+				style={`--c: ${typePalette.text}; --b: ${typePalette.border};`}
+			></div>
 		{/if}
 	</div>
 
@@ -74,6 +128,17 @@
 			{/if}
 			{#if Content}
 				<div class="body"><Content /></div>
+			{/if}
+			{#if card.wikidataId}
+				<a
+					class="learn-more"
+					href="https://en.wikipedia.org/wiki/{encodeURIComponent(card.name.replace(/ /g, '_'))}"
+					target="_blank"
+					rel="noopener noreferrer"
+					onclick={(e) => e.stopPropagation()}
+				>
+					Learn more →
+				</a>
 			{/if}
 		</div>
 	</div>
@@ -249,6 +314,7 @@
 	/* ─── Image area ────────────────────────────────────────────────────────── */
 
 	.image-wrap {
+		position: relative;
 		width: 100%;
 		height: 250px;
 		overflow: hidden;
@@ -263,6 +329,31 @@
 		height: 100%;
 		object-fit: contain;
 		display: block;
+	}
+
+	.avatar-art {
+		position: absolute;
+		inset: 0;
+	}
+
+	.avatar-art::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(ellipse 55% 65% at 38% 28%, var(--c) 0%, transparent 60%),
+			radial-gradient(ellipse 42% 52% at 68% 52%, var(--c) 0%, transparent 55%),
+			radial-gradient(ellipse 65% 42% at 44% 78%, var(--b) 0%, transparent 52%),
+			radial-gradient(ellipse 32% 42% at 54% 36%, var(--c) 0%, transparent 45%);
+		opacity: 0.32;
+		filter: blur(24px) saturate(220%) brightness(1.4);
+	}
+
+	.avatar-art::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 20%, rgba(6, 4, 26, 0.7) 100%);
 	}
 
 	/* ─── Front footer ──────────────────────────────────────────────────────── */
@@ -366,7 +457,7 @@
 		font-weight: 600;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: rgba(196, 160, 255, 0.65);
+		color: #c084fc;
 		margin: 0 0 0.45rem;
 	}
 
@@ -386,5 +477,22 @@
 
 	.body :global(p) {
 		margin: 0;
+	}
+
+	.learn-more {
+		display: inline-block;
+		margin-top: 0.6rem;
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		color: #c084fc;
+		text-decoration: none;
+		border-bottom: 1px solid rgba(192, 132, 252, 0.45);
+		transition: color 0.2s ease, border-color 0.2s ease;
+	}
+
+	.learn-more:hover {
+		color: #e9d5ff;
+		border-bottom-color: rgba(233, 213, 255, 0.7);
 	}
 </style>

@@ -4,6 +4,11 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	build: {
+		rollupOptions: {
+			external: ['bufferutil', 'utf-8-validate', 'encoding']
+		}
+	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
