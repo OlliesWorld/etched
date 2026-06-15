@@ -48,14 +48,12 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import type { Card } from '$lib/cards.server.js';
-	import { getDomainPalette, getTypePalette } from '$lib/domain-colors.js';
+	import { getDomainPalette } from '$lib/domain-colors.js';
+	import Crown from '$lib/assets/crown.svg?raw';
 
 	let { card, Content }: { card: Card; Content?: Component } = $props();
 	let revealed = $state(false);
-	const typePalette = $derived(getTypePalette(card.type));
-	const filterId = $derived(card.name.replace(/[^a-z0-9]/gi, '').toLowerCase());
-
-	// ≤ 10 lines: read mouse position as 0–1 fractions, push to CSS custom props
+// ≤ 10 lines: read mouse position as 0–1 fractions, push to CSS custom props
 	function holographic(node: HTMLElement) {
 		const move = (e: MouseEvent) => {
 			const b = node.getBoundingClientRect();
@@ -89,10 +87,7 @@
 		{#if card.image}
 			<img src={card.image} alt={card.name} loading="lazy" />
 		{:else}
-			<div
-				class="avatar-art"
-				style={`--c: ${typePalette.text}; --b: ${typePalette.border};`}
-			></div>
+			<div class="avatar-art">{@html Crown}</div>
 		{/if}
 	</div>
 
@@ -100,12 +95,6 @@
 	<div class="front-footer">
 		<h2>{card.name}</h2>
 		<div class="tags">
-			<span
-				class="tag type"
-				style={`--type-bg: ${typePalette.bg}; --type-fg: ${typePalette.text}; --type-border: ${typePalette.border};`}
-			>
-				{card.type}
-			</span>
 			<span class="tag era">{card.era}</span>
 			{#each card.domain as d (d)}
 				{@const palette = getDomainPalette(d)}
@@ -157,43 +146,6 @@
 		inherits: false;
 		initial-value: 0.5;
 	}
-	@property --hue-shift {
-		syntax: '<number>';
-		inherits: false;
-		initial-value: 0;
-	}
-	@property --shine-x {
-		syntax: '<number>';
-		inherits: false;
-		initial-value: 0.5;
-	}
-	@property --shine-y {
-		syntax: '<number>';
-		inherits: false;
-		initial-value: 0.5;
-	}
-	/* Glass glint sweep position — 0 = left edge, 1 = right edge */
-	@property --glint {
-		syntax: '<number>';
-		inherits: false;
-		initial-value: -0.2;
-	}
-
-	/* ─── Idle: rainbow hue cycles, spotlight drifts, glass glint sweeps ────── */
-
-	@keyframes idle-shimmer {
-		0%   { --hue-shift: 0;   --shine-x: 0.28; --shine-y: 0.22; }
-		25%  { --hue-shift: 90;  --shine-x: 0.78; --shine-y: 0.38; }
-		50%  { --hue-shift: 180; --shine-x: 0.65; --shine-y: 0.78; }
-		75%  { --hue-shift: 270; --shine-x: 0.22; --shine-y: 0.62; }
-		100% { --hue-shift: 360; --shine-x: 0.28; --shine-y: 0.22; }
-	}
-
-	/* Glass glint: diagonal highlight sweeps across the card, then pauses */
-	@keyframes glass-sweep {
-		0%        { --glint: -0.25; }
-		20%, 100% { --glint: 1.25; }
-	}
 
 	/* ─── Card container ────────────────────────────────────────────────────── */
 
@@ -206,7 +158,6 @@
 		background: linear-gradient(145deg, #16132a 0%, #0e0c1e 55%, #12102a 100%);
 		color: #e8e8f0;
 
-		/* Glass edge: subtle white border + inner highlight */
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		box-shadow:
 			calc((var(--mouse-x) - 0.5) * 40px) calc((var(--mouse-y) - 0.5) * 28px) 48px rgba(0, 0, 0, 0.6),
@@ -222,21 +173,15 @@
 			transform 0.1s ease-out,
 			box-shadow 0.12s ease-out;
 
-		animation: idle-shimmer 7s linear infinite;
 		touch-action: manipulation;
 		cursor: pointer;
 	}
 
 	.card:hover {
-		animation-play-state: paused;
 		border-color: rgba(200, 170, 255, 0.25);
 	}
 
-	/* ─── ::before — glass glint sweep (idle) + mouse spotlight (hover) ─────── */
-	/*                                                                             */
-	/* Two gradient layers in one pseudo-element:                                 */
-	/*   1. Diagonal band (--glint) sweeps L→R in idle, frozen on hover          */
-	/*   2. Radial spotlight always tracks --mouse-x/y                            */
+	/* ─── ::before — mouse spotlight ────────────────────────────────────────── */
 
 	.card::before {
 		content: '';
@@ -247,36 +192,24 @@
 		pointer-events: none;
 
 		background:
-			/* spotlight — only really visible when mouse is off-center */
 			radial-gradient(
 				ellipse 80% 80% at calc(var(--mouse-x) * 100%) calc(var(--mouse-y) * 100%),
 				rgba(255, 255, 255, 0.18) 0%,
-				hsl(calc(var(--mouse-x) * 360 + var(--hue-shift)) 100% 72% / 0.24) 28%,
-				hsl(calc(var(--mouse-x) * 360 + var(--hue-shift) + 120) 80% 65% / 0.08) 52%,
+				hsl(calc(var(--mouse-x) * 360) 100% 72% / 0.24) 28%,
+				hsl(calc(var(--mouse-x) * 360 + 120) 80% 65% / 0.08) 52%,
 				transparent 68%
-			),
-			/* glass glint — narrow diagonal band */
-			linear-gradient(
-				115deg,
-				transparent              calc(var(--glint) * 120% - 22%),
-				rgba(255, 255, 255, 0.0) calc(var(--glint) * 120% - 12%),
-				rgba(255, 255, 255, 0.3) calc(var(--glint) * 120%),
-				rgba(255, 255, 255, 0.0) calc(var(--glint) * 120% + 12%),
-				transparent              calc(var(--glint) * 120% + 22%)
 			);
 
 		mix-blend-mode: overlay;
-		opacity: 0.55;
-		animation: glass-sweep 4.5s ease-in-out infinite;
+		opacity: 0;
 		transition: opacity 0.35s ease;
 	}
 
 	.card:hover::before {
 		opacity: 1;
-		animation-play-state: paused;
 	}
 
-	/* ─── ::after — rainbow foil + idle spotlight ───────────────────────────── */
+	/* ─── ::after — rainbow foil on hover ───────────────────────────────────── */
 
 	.card::after {
 		content: '';
@@ -287,28 +220,23 @@
 		pointer-events: none;
 
 		background:
-			radial-gradient(
-				circle at calc(var(--shine-x) * 100%) calc(var(--shine-y) * 100%),
-				hsl(calc(var(--hue-shift)) 100% 68% / 0.2),
-				transparent 52%
-			),
 			linear-gradient(
 				calc(var(--mouse-x) * 360deg),
-				hsl(calc(var(--hue-shift))       100% 55% / 0.14),
-				hsl(calc(var(--hue-shift) + 60)  100% 60% / 0.11),
-				hsl(calc(var(--hue-shift) + 120) 100% 55% / 0.14),
-				hsl(calc(var(--hue-shift) + 180) 100% 60% / 0.11),
-				hsl(calc(var(--hue-shift) + 240) 100% 55% / 0.14),
-				hsl(calc(var(--hue-shift) + 300) 100% 60% / 0.11)
+				hsl(0   100% 55% / 0.14),
+				hsl(60  100% 60% / 0.11),
+				hsl(120 100% 55% / 0.14),
+				hsl(180 100% 60% / 0.11),
+				hsl(240 100% 55% / 0.14),
+				hsl(300 100% 60% / 0.11)
 			);
 
 		mix-blend-mode: color-dodge;
-		opacity: 0.45;
+		opacity: 0;
 		transition: opacity 0.45s ease;
 	}
 
 	.card:hover::after {
-		opacity: 1;
+		opacity: 0.6;
 	}
 
 	/* ─── Image area ────────────────────────────────────────────────────────── */
@@ -334,26 +262,15 @@
 	.avatar-art {
 		position: absolute;
 		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.avatar-art::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background:
-			radial-gradient(ellipse 55% 65% at 38% 28%, var(--c) 0%, transparent 60%),
-			radial-gradient(ellipse 42% 52% at 68% 52%, var(--c) 0%, transparent 55%),
-			radial-gradient(ellipse 65% 42% at 44% 78%, var(--b) 0%, transparent 52%),
-			radial-gradient(ellipse 32% 42% at 54% 36%, var(--c) 0%, transparent 45%);
-		opacity: 0.32;
-		filter: blur(24px) saturate(220%) brightness(1.4);
-	}
-
-	.avatar-art::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 20%, rgba(6, 4, 26, 0.7) 100%);
+	.avatar-art :global(svg) {
+		width: 55%;
+		height: auto;
+		opacity: 0.18;
 	}
 
 	/* ─── Front footer ──────────────────────────────────────────────────────── */
@@ -393,13 +310,6 @@
 		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 	}
 
-	.type {
-		background: var(--type-bg, #372c11);
-		color: var(--type-fg, #f0d98f);
-		border: 1px solid var(--type-border, #8b742b);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-	}
 	.era    { background: #0f2e45; color: #7ec8f5; border: 1px solid rgba(126, 200, 245, 0.25); }
 	.domain {
 		background: var(--domain-bg, #0e2e1e);

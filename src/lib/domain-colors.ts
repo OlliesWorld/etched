@@ -11,12 +11,18 @@ export interface TypePalette {
 }
 
 const DOMAIN_PALETTES: DomainPalette[] = [
-	{ bg: 'rgba(66, 138, 245, 0.2)', text: '#a8d4ff', border: 'rgba(130, 186, 255, 0.42)' },
-	{ bg: 'rgba(57, 184, 142, 0.2)', text: '#a5f0d0', border: 'rgba(123, 232, 187, 0.44)' },
-	{ bg: 'rgba(230, 157, 65, 0.2)', text: '#ffd9a8', border: 'rgba(255, 197, 127, 0.42)' },
-	{ bg: 'rgba(224, 96, 125, 0.2)', text: '#ffc0d0', border: 'rgba(255, 155, 180, 0.44)' },
-	{ bg: 'rgba(125, 120, 235, 0.2)', text: '#cfccff', border: 'rgba(169, 165, 255, 0.44)' },
-	{ bg: 'rgba(82, 196, 210, 0.2)', text: '#b8f2f8', border: 'rgba(128, 233, 244, 0.44)' }
+	{ bg: 'rgba(66, 138, 245, 0.15)',  text: '#90bff0', border: 'rgba(110, 166, 235, 0.32)' },
+	{ bg: 'rgba(57, 184, 142, 0.15)',  text: '#88d9b8', border: 'rgba(100, 210, 165, 0.32)' },
+	{ bg: 'rgba(230, 157, 65, 0.15)',  text: '#e0bc88', border: 'rgba(220, 175, 100, 0.32)' },
+	{ bg: 'rgba(210, 90, 115, 0.15)',  text: '#e0a0b5', border: 'rgba(220, 130, 155, 0.32)' },
+	{ bg: 'rgba(125, 100, 220, 0.15)', text: '#b8b0f0', border: 'rgba(155, 140, 240, 0.32)' },
+	{ bg: 'rgba(70, 190, 210, 0.15)',  text: '#88dce8', border: 'rgba(100, 215, 230, 0.32)' },
+	{ bg: 'rgba(180, 90, 200, 0.15)',  text: '#d0a0e0', border: 'rgba(200, 130, 220, 0.32)' },
+	{ bg: 'rgba(100, 175, 90, 0.15)',  text: '#98d090', border: 'rgba(130, 200, 120, 0.32)' },
+	{ bg: 'rgba(220, 130, 50, 0.15)',  text: '#d8a870', border: 'rgba(210, 155, 80, 0.32)'  },
+	{ bg: 'rgba(60, 150, 180, 0.15)',  text: '#80c8e0', border: 'rgba(90, 175, 205, 0.32)'  },
+	{ bg: 'rgba(200, 80, 80, 0.15)',   text: '#d89090', border: 'rgba(210, 115, 115, 0.32)' },
+	{ bg: 'rgba(140, 160, 80, 0.15)',  text: '#bac870', border: 'rgba(165, 185, 100, 0.32)' }
 ];
 
 function hashDomain(value: string): number {

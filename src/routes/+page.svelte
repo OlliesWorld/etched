@@ -291,9 +291,9 @@
 	}
 
 	.filter-buttons .domain-filter {
-		border: 1px solid var(--filter-border, #2a7b4d);
-		background: var(--filter-bg, #0e2e1e);
-		color: var(--filter-fg, #6deda0);
+		border: 1px solid var(--filter-border, rgba(130, 186, 255, 0.32));
+		background: var(--filter-bg, rgba(66, 138, 245, 0.15));
+		color: var(--filter-fg, #90bff0);
 		font-weight: 500;
 	}
 
@@ -303,9 +303,9 @@
 	}
 
 	.filter-buttons .domain-filter.active {
-		background: color-mix(in oklab, var(--filter-bg, rgba(66, 138, 245, 0.2)) 72%, white);
-		border-color: color-mix(in oklab, var(--filter-border, rgba(130, 186, 255, 0.42)) 68%, white);
-		color: color-mix(in oklab, var(--filter-fg, #a8d4ff) 86%, white);
+		background: color-mix(in oklab, var(--filter-bg, rgba(66, 138, 245, 0.15)) 60%, white);
+		border-color: color-mix(in oklab, var(--filter-border, rgba(130, 186, 255, 0.32)) 55%, white);
+		color: color-mix(in oklab, var(--filter-fg, #90bff0) 80%, white);
 	}
 
 	.filter-buttons .all-filter.active {
