@@ -1,50 +1,3 @@
-<script module>
-	import { SvelteMap } from 'svelte/reactivity';
-
-	// Shared across all Card instances — one AudioContext for the whole page
-	let audioCtx: AudioContext | null = null;
-	let audioUnlocked = false;
-	const audioCache = new SvelteMap<string, AudioBuffer>();
-
-	function getAudioContext(): AudioContext {
-		audioCtx ??= new AudioContext();
-		return audioCtx;
-	}
-
-	export async function unlockAudio() {
-		if (audioUnlocked) return;
-		const ctx = getAudioContext();
-		await ctx.resume();
-		audioUnlocked = true;
-	}
-
-	export async function playHoverSound(text: string) {
-		if (!audioUnlocked) return;
-		try {
-			const ctx = getAudioContext();
-
-			let audioBuffer = audioCache.get(text);
-			if (!audioBuffer) {
-				const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
-				if (!res.ok) {
-					console.error('TTS API error:', res.status, await res.text());
-					return;
-				}
-				const arrayBuf = await res.arrayBuffer();
-				audioBuffer = await ctx.decodeAudioData(arrayBuf);
-				audioCache.set(text, audioBuffer);
-			}
-
-			const source = ctx.createBufferSource();
-			source.buffer = audioBuffer;
-			source.connect(ctx.destination);
-			source.start();
-		} catch (e) {
-			console.error('playHoverSound failed:', e);
-		}
-	}
-</script>
-
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import type { Card } from '$lib/cards.server.js';
@@ -74,9 +27,8 @@
 	{@attach holographic}
 	class="card"
 	class:is-revealed={revealed}
-	onclick={() => { unlockAudio(); revealed = !revealed; }}
+	onclick={() => { revealed = !revealed; }}
 	onkeydown={(e) => e.key === 'Enter' && (revealed = !revealed)}
-	onmouseenter={() => playHoverSound('water drop, soft liquid swirl,')}
 	role="button"
 	tabindex="0"
 	aria-expanded={revealed}
