@@ -5,7 +5,7 @@ import type { WikidataEntity } from './wikidata.js';
 
 const frontmatter: CardFrontmatter = {
 	name: 'Wonder Woman',
-	type: 'fictional',
+	type: 'mythical',
 	era: 'modern',
 	domain: ['justice', 'strength'],
 	image: '/images/wonder-woman.jpg',
@@ -35,7 +35,7 @@ describe('mergeCardData', () => {
 	it('preserves all frontmatter fields', () => {
 		const result = mergeCardData(frontmatter, wikidata);
 		expect(result.name).toBe('Wonder Woman');
-		expect(result.type).toBe('fictional');
+		expect(result.type).toBe('mythical');
 		expect(result.era).toBe('modern');
 		expect(result.domain).toEqual(['justice', 'strength']);
 		expect(result.wikidataId).toBe('Q189048');

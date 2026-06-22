@@ -1,6 +1,6 @@
 ---
 name: "Athena"
-type: mythological
+type: mythical
 era: ancient
 domain: [wisdom, warfare, crafts]
 wikidataId: Q45867

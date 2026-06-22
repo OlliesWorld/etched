@@ -1,6 +1,6 @@
 ---
 name: "Wonder Woman"
-type: fictional
+type: mythical
 era: modern
 domain: [justice, strength, mythology]
 wikidataId: Q189048

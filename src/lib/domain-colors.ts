@@ -44,15 +44,10 @@ const TYPE_PALETTES: Record<string, TypePalette> = {
 		text: '#ffe0ac',
 		border: 'rgba(255, 208, 135, 0.5)'
 	},
-	mythological: {
+	mythical: {
 		bg: 'rgba(170, 118, 240, 0.2)',
 		text: '#e6cbff',
 		border: 'rgba(204, 161, 255, 0.5)'
-	},
-	fictional: {
-		bg: 'rgba(92, 171, 235, 0.2)',
-		text: '#bde5ff',
-		border: 'rgba(146, 200, 245, 0.5)'
 	}
 };
 

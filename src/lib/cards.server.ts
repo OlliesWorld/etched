@@ -2,7 +2,7 @@ import { fetchByWikidataId, type WikidataEntity } from './wikidata.js';
 
 export interface CardFrontmatter {
 	name: string;
-	type: 'fictional' | 'historical' | 'mythological';
+	type: 'mythical' | 'historical';
 	era: string;
 	domain: string[];
 	image?: string;
