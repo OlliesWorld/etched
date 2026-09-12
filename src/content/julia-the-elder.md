@@ -4,6 +4,7 @@ type: historical
 era: ancient
 domain: [history]
 wikidataId: Q2259
+image: '/julia-the-elder.jpg'
 ---
 
 daughter of Emperor Augustus (39 BC – AD 14) Her epithet "the Elder" distinguishes her from her daughter, Julia the Younger.

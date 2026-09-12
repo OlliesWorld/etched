@@ -34,26 +34,33 @@ type MdModule = {
 export async function loadCards(fetchFn: typeof fetch = fetch): Promise<Card[]> {
 	const modules = import.meta.glob<MdModule>('../content/*.md', { eager: true });
 
-	const cards: Card[] = [];
+	const entries = Object.entries(modules).map(([path, mod]) => ({
+		slug: path.replace('../content/', '').replace('.md', ''),
+		metadata: mod.metadata
+	}));
 
-	for (const [path, mod] of Object.entries(modules)) {
-		const slug = path.replace('../content/', '').replace('.md', '');
-		const { metadata } = mod;
-
-		let wikidata: WikidataEntity | undefined;
-		if (metadata.wikidataId) {
-			try {
-				wikidata = (await fetchByWikidataId(metadata.wikidataId, fetchFn)) ?? undefined;
-			} catch {
-				// Non-fatal: continue without Wikidata enrichment
+	// Cards that already ship a local `image:` don't need Wikidata at all
+	// beyond the description shown in the reveal panel, but we still only
+	// need one lookup per card — do them all in parallel instead of one
+	// request at a time, which used to serialize ~30 live SPARQL calls
+	// behind a single page load.
+	const cards = await Promise.all(
+		entries.map(async ({ slug, metadata }) => {
+			let wikidata: WikidataEntity | undefined;
+			if (metadata.wikidataId) {
+				try {
+					wikidata = (await fetchByWikidataId(metadata.wikidataId, fetchFn)) ?? undefined;
+				} catch {
+					// Non-fatal: continue without Wikidata enrichment
+				}
 			}
-		}
 
-		cards.push({
-			...mergeCardData(metadata, wikidata),
-			slug
-		});
-	}
+			return {
+				...mergeCardData(metadata, wikidata),
+				slug
+			};
+		})
+	);
 
 	return cards;
 }

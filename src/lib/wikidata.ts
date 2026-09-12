@@ -206,6 +206,19 @@ export async function fetchWomenFromWikidata(
 	return normalizeWomenResponse(data);
 }
 
+// ─── In-memory response cache ──────────────────────────────────────────────────
+// Wikidata SPARQL responses for a given entity essentially never change within
+// a server's lifetime, and the same ~30 IDs get looked up on every page load.
+// Caching avoids re-issuing a live network request per card per request.
+
+const ENTITY_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const entityCache = new Map<string, { value: WikidataEntity | null; expiresAt: number }>();
+
+/** Exposed for tests, which reuse the same wikidataId across independent mock fetches. */
+export function clearEntityCache(): void {
+	entityCache.clear();
+}
+
 /**
  * Fetch a single Wikidata entity by its Q-number.
  * Returns null when the entity has no English label or the response is empty.
@@ -214,6 +227,13 @@ export async function fetchByWikidataId(
 	wikidataId: string,
 	fetchFn: typeof fetch = fetch
 ): Promise<WikidataEntity | null> {
+	const cached = entityCache.get(wikidataId);
+	if (cached && cached.expiresAt > Date.now()) {
+		return cached.value;
+	}
+
 	const data = await sparqlFetch(buildEntityQuery(wikidataId), fetchFn);
-	return normalizeEntityResponse(data, wikidataId);
+	const value = normalizeEntityResponse(data, wikidataId);
+	entityCache.set(wikidataId, { value, expiresAt: Date.now() + ENTITY_CACHE_TTL_MS });
+	return value;
 }

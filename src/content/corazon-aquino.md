@@ -4,6 +4,7 @@ type: historical
 era: modern
 domain: [politics, democracy]
 wikidataId: Q1480
+image: '/corazon-aquino.jpg'
 ---
 
 The first female president in Philippine history, Aquino was the most prominent figure of the 1986 People Power Revolution.

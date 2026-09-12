@@ -41,3 +41,15 @@ You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
 # etched
+
+## Content & images
+
+Cards live as markdown files in `src/content/*.md` with YAML frontmatter (`name`, `type`, `era`, `domain`, `wikidataId`, and optionally `image`). At request time, `loadCards()` (`src/lib/cards.server.ts`) enriches each card with data from Wikidata (description, birth/death year, occupations) via `src/lib/wikidata.ts`, which caches responses in memory for an hour.
+
+If a card's frontmatter has no `image:` field, its portrait falls back to a live hotlink to `commons.wikimedia.org/wiki/Special:FilePath/...` (a redirect to `upload.wikimedia.org`) on every page load — slow, and dependent on Wikimedia's uptime. Prefer baking in a local image instead:
+
+```sh
+npx tsx scripts/cache-images.ts
+```
+
+This downloads each card's Wikidata portrait once, saves it to `static/<slug>.<ext>`, and writes `image: '/<slug>.<ext>'` into that card's frontmatter. It only touches cards that have a `wikidataId` and no existing `image:`, so it's safe to re-run after adding new cards (e.g. via `scripts/seed-women.ts`, which creates content files but does not localize images itself).

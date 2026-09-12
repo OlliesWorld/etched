@@ -1,11 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
 	extractYear,
 	normalizeWomenResponse,
 	normalizeEntityResponse,
 	fetchWomenFromWikidata,
-	fetchByWikidataId
+	fetchByWikidataId,
+	clearEntityCache
 } from './wikidata.js';
+
+beforeEach(() => {
+	clearEntityCache();
+});
 
 // ─── Mock SPARQL data ─────────────────────────────────────────────────────────
 
